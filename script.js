@@ -1,4 +1,6 @@
 document.addEventListener('DOMContentLoaded', function() {
+    // Proxy de cors mediante railway para servir la api de go debido que al desplegar
+    // la app web se despliega en https y la api envia en http
     const API_BASE_URL = 'https://cors-anywhere-production-47df.up.railway.app/http://74.163.96.57:8080';
     let currentSection = 'estudiantes';
     
@@ -232,19 +234,28 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // ========== MATRÍCULAS ==========
     function loadMatriculas() {
-        fetch(`${API_BASE_URL}/matriculas`)
+        let ciclosMap = {};
+    
+        // Primero obtener todos los ciclos
+        fetch(`${API_BASE_URL}/ciclos`)
+        .then(response => response.json())
+        .then(ciclos => {
+            // Guardar en un mapa para fácil acceso
+            ciclos.forEach(c => {
+                ciclosMap[c.id_ciclo] = c.nom_ciclo;
+            });
+    
+            // Luego cargar las matrículas
+            return fetch(`${API_BASE_URL}/matriculas`);
+        })
         .then(response => response.json())
         .then(data => {
             const tableBody = document.getElementById('matriculas-table-body');
             tableBody.innerHTML = '';
     
-            // Asegurar que los IDs sean números y ordenar
             data.forEach(m => m.id_matricula = Number(m.id_matricula));
             data.sort((a, b) => a.id_matricula - b.id_matricula);
     
-            console.log(data.map(m => m.id_matricula));
-    
-            // Mapear a una lista de promesas que traen al estudiante y combinan datos
             const promises = data.map(matricula => {
                 return fetch(`${API_BASE_URL}/estudiantes/${matricula.ci_est_per}`)
                     .then(res => res.json())
@@ -255,15 +266,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
             });
     
-            // Esperar a que todas las promesas terminen
             Promise.all(promises).then(resultados => {
                 resultados.forEach(({ matricula, estudiante }) => {
                     const row = document.createElement('tr');
                     row.className = 'fade-in';
+    
+                    const nomCiclo = ciclosMap[matricula.id_cic_per] || `ID ${matricula.id_cic_per}`;
+    
                     row.innerHTML = `
                         <td>${matricula.id_matricula}</td>
                         <td>${estudiante.nombres}</td>
-                        <td>${matricula.id_cic_per}</td>
+                        <td>${nomCiclo}</td>
                         <td>${matricula.nota1 || '-'}</td>
                         <td>${matricula.nota2 || '-'}</td>
                         <td>${matricula.supletorio || '-'}</td>
@@ -282,10 +295,11 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         })
         .catch(error => {
-            console.error('Error al obtener matrículas:', error);
+            console.error('Error al obtener datos:', error);
             showAlert('error', 'Error', 'No se pudieron cargar las matrículas');
         });
     }
+    
 
     function setupMatriculaEvents() {
         // Nueva matrícula
