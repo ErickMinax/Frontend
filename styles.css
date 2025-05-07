@@ -38,6 +38,7 @@ body {
     padding: 0.4em 0.6em;
 }
 
+
 /* Animaciones */
 @keyframes fadeIn {
     from { opacity: 0; }
@@ -50,6 +51,12 @@ body {
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
+   /* Hacer la tabla desplazable horizontalmente en pantallas pequeñas */
+    .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
     .card-header {
         flex-direction: column;
         align-items: flex-start;

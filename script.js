@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', function() {
-    const API_BASE_URL = 'http://26.60.87.216:8080';
+    const API_BASE_URL = 'http://74.163.96.57:8080';
     let currentSection = 'estudiantes';
     
     // Cargar sección inicial
@@ -238,48 +238,55 @@ document.addEventListener('DOMContentLoaded', function() {
             const tableBody = document.getElementById('matriculas-table-body');
             tableBody.innerHTML = '';
     
-            // Ordenar las matrículas por id_matricula (de menor a mayor)
-            data.sort((a, b) => Number(a.id_matricula) - Number(b.id_matricula));
+            // Asegurar que los IDs sean números y ordenar
+            data.forEach(m => m.id_matricula = Number(m.id_matricula));
+            data.sort((a, b) => a.id_matricula - b.id_matricula);
     
-            // Iterar por cada matrícula ordenada
-            data.forEach(matricula => {
-                // Obtener el nombre del estudiante basado en la cédula
-                fetch(`${API_BASE_URL}/estudiantes/${matricula.ci_est_per}`)
-                    .then(response => response.json())
-                    .then(estudiante => {
-                        const row = document.createElement('tr');
-                        row.className = 'fade-in';
-                        row.innerHTML = `
-                            <td>${matricula.id_matricula}</td>
-                            <td>${estudiante.nombres}</td>
-                            <td>${matricula.id_cic_per}</td>
-                            <td>${matricula.nota1 || '-'}</td>
-                            <td>${matricula.nota2 || '-'}</td>
-                            <td>${matricula.supletorio || '-'}</td>
-                            <td>
-                                ${matricula.aprobado === 'S' ? '<span class="badge bg-success">Sí</span>' :
-                                 matricula.aprobado === 'N' ? '<span class="badge bg-danger">No</span>' :
-                                 `<span class="badge bg-warning text-dark">${matricula.aprobado}</span>`}
-                            </td>
-                            <td>
-                                <button class="btn btn-primary btn-sm btn-action btn-editar" data-id="${matricula.id_matricula}">Editar</button>
-                                <button class="btn btn-danger btn-sm btn-action btn-eliminar" data-id="${matricula.id_matricula}">Eliminar</button>
-                            </td>
-                        `;
-                        tableBody.appendChild(row);
-                    })
+            console.log(data.map(m => m.id_matricula));
+    
+            // Mapear a una lista de promesas que traen al estudiante y combinan datos
+            const promises = data.map(matricula => {
+                return fetch(`${API_BASE_URL}/estudiantes/${matricula.ci_est_per}`)
+                    .then(res => res.json())
+                    .then(estudiante => ({ matricula, estudiante }))
                     .catch(error => {
                         console.error('Error al obtener estudiante:', error);
-                        showAlert('error', 'Error', 'No se pudo cargar el nombre del estudiante');
+                        return { matricula, estudiante: { nombres: 'Error' } };
                     });
+            });
+    
+            // Esperar a que todas las promesas terminen
+            Promise.all(promises).then(resultados => {
+                resultados.forEach(({ matricula, estudiante }) => {
+                    const row = document.createElement('tr');
+                    row.className = 'fade-in';
+                    row.innerHTML = `
+                        <td>${matricula.id_matricula}</td>
+                        <td>${estudiante.nombres}</td>
+                        <td>${matricula.id_cic_per}</td>
+                        <td>${matricula.nota1 || '-'}</td>
+                        <td>${matricula.nota2 || '-'}</td>
+                        <td>${matricula.supletorio || '-'}</td>
+                        <td>
+                            ${matricula.aprobado === 'S' ? '<span class="badge bg-success">Sí</span>' :
+                             matricula.aprobado === 'N' ? '<span class="badge bg-danger">No</span>' :
+                             `<span class="badge bg-warning text-dark">${matricula.aprobado}</span>`}
+                        </td>
+                        <td>
+                            <button class="btn btn-primary btn-sm btn-action btn-editar" data-id="${matricula.id_matricula}">Editar</button>
+                            <button class="btn btn-danger btn-sm btn-action btn-eliminar" data-id="${matricula.id_matricula}">Eliminar</button>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
             });
         })
         .catch(error => {
             console.error('Error al obtener matrículas:', error);
-        });    
+            showAlert('error', 'Error', 'No se pudieron cargar las matrículas');
+        });
     }
 
-    
     function setupMatriculaEvents() {
         // Nueva matrícula
         document.getElementById('btnNuevaMatricula')?.addEventListener('click', () => {
@@ -485,9 +492,6 @@ document.addEventListener('DOMContentLoaded', function() {
         : `${API_BASE_URL}/matriculas`;
     
         const method = isEdit ? 'PUT' : 'POST';
-
-        // Imprimir el JSON antes de enviarlo
-        console.log('Datos a enviar:', JSON.stringify(formData));
     
         fetch(url, {
             method: method,
