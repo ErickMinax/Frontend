@@ -1,6 +1,5 @@
 document.addEventListener('DOMContentLoaded', function() {
-
-    const API_BASE_URL = 'cors-anywhere-production-cf87.up.railway.app/http://74.163.96.57:8080';
+    const API_BASE_URL = 'https://cors-anywhere-production-cf87.up.railway.app/http://74.163.96.57:8080';
     let currentSection = 'estudiantes';
     
     // Cargar sección inicial
