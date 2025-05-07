@@ -1,5 +1,8 @@
 document.addEventListener('DOMContentLoaded', function() {
-    const API_BASE_URL = 'http://74.163.96.57:8080';
+    // Abrir automáticamente la activación del proxy
+    window.open('https://cors-anywhere.herokuapp.com/corsdemo', '_blank');
+
+    const API_BASE_URL = 'https://cors-anywhere.herokuapp.com/http://74.163.96.57:8080';
     let currentSection = 'estudiantes';
     
     // Cargar sección inicial
